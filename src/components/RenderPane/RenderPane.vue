@@ -1,8 +1,24 @@
 <template>
     <div class="render_pane flex flex-col">
-      <div class="toolbar">Render</div>
-      <StylesPane ref="styles_pane" v-bind:element="selected_element" v-on:css_updated="update_selected_element_css"/>
-      <div v-html="code" ref="content" v-on:mousedown="mousedown" v-on:mouseup="mouseup" class="content flex-1"></div>
+      <div class="toolbar">
+        <select>
+          <option>Default</option>
+          <option>OpenGraph Image - LinkedIn</option>
+          <option>OpenGraph Image - Twitter</option>
+        </select>
+      </div>
+      <div class="flex flex-row flex-1">
+        <div class="tools flex flex-col">
+          <img class="button" src="./assets/object-alignment-to-the-left.svg">
+          <img class="button" src="./assets/object-alignment-horizontal.svg">
+          <img class="button" src="./assets/object-alignment-to-the-right.svg">
+          <img class="button" src="./assets/object-alignment-to-the-top.svg">
+          <img class="button" src="./assets/object-alignment-to-the-center.svg">
+          <img class="button" src="./assets/object-alignment-at-the-bottom.svg">
+        </div>
+        <StylesPane ref="styles_pane" v-bind:element="selected_element" v-on:css_updated="update_selected_element_css"/>
+        <div v-html="code" ref="content" v-on:mousedown="mousedown" v-on:mouseup="mouseup" class="content flex-1"></div>
+      </div>
     </div>
 </template>
 
@@ -103,7 +119,6 @@ export default {
 <style scoped>
     .render_pane {
         width: 100%;
-        height: 600px;
     }
     .render_pane >>> .selected {
       content: '';
@@ -112,5 +127,28 @@ export default {
       width: 100%;
       height: 100%;
       outline: 2px dashed red;
+    }
+    .render_pane >>> .tools { order: 1; }
+    .render_pane >>> .styles_pane { order: 2; }
+    .render_pane >>> .tools {
+      padding: 0.25rem;
+      background-color: #cecece;
+    }
+    .render_pane >>> .tools .button {
+      box-sizing: content-box;
+      height: 1rem;
+      padding: 0.25rem;
+      border: 1px solid rgb(0, 0, 0);
+      border-radius: 3px;
+    }
+    .render_pane >>> .tools .button:hover {
+      opacity: 0.25;
+      cursor: pointer;
+    }
+    .render_pane >>> .tools .button:nth-child(n+1) {
+      margin-top: 0.25rem;
+    }
+    .render_pane >>> .content {
+      overflow: hidden;
     }
 </style>

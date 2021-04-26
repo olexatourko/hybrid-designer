@@ -1,7 +1,6 @@
 <template>
     <div class="styles_pane">
-        <h3>Inline CSS</h3>
-        <codemirror ref="cmEditor" :options="cmOptions" v-on:changes="on_code_update"/>
+      <codemirror ref="cmEditor" :options="cmOptions" v-on:changes="on_code_update"/>
     </div>
 </template>
 
@@ -12,8 +11,7 @@ export default {
     element: HTMLElement
   },
   watch: {
-    element: function(new_val, old_val) {
-      console.log(new_val, old_val);
+    element: function(new_val) {
       let css = new_val.style.cssText.replaceAll("; ", ";");
       css = css.replaceAll(";", ";\n");
       this.$refs.cmEditor.codemirror.doc.setValue(css);
@@ -48,7 +46,7 @@ export default {
 <style scoped>
     .styles_pane {
         background-color: rgb(255, 249, 223);
-        padding: 1rem;
+        padding-right: 1rem;
     }
 
     .styles_pane >>> .CodeMirror,

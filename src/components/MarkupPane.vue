@@ -13,7 +13,7 @@ export default {
   data () {
     return {
       code:
-`<div style="display: flex; width: 100%; height: 100%; flex-direction: row;">
+`<div style="display: flex; width: 100%; height: 600px; flex-direction: row;">
   <div style="width: 10rem; height: 6rem; margin: auto; box-shadow: 0 0.15rem 3rem rgba(0, 0, 0, 0.15); border-radius: 0.5rem;">
     Test Content
   </div>
@@ -49,9 +49,13 @@ export default {
     .markup_pane {
       width: 100%;
       height: 600px;
-      background-color: #f5f5f5;
+      background-color: rgb(255, 249, 223);
     }
     .vue-codemirror >>> .CodeMirror {
       height: auto;
+      background-color: rgb(255, 249, 223);
+    }
+    .markup_pane >>> .CodeMirror .CodeMirror-gutters {
+      background-color: rgb(255, 249, 223);
     }
 </style>
