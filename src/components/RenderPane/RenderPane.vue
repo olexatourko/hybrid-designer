@@ -9,9 +9,9 @@
       </div>
       <div class="flex flex-row flex-1">
         <div class="tools flex flex-col">
-          <img class="button" src="./assets/object-alignment-to-the-left.svg">
-          <img class="button" src="./assets/object-alignment-horizontal.svg">
-          <img class="button" src="./assets/object-alignment-to-the-right.svg">
+          <img v-on:click="align_left" class="button" src="./assets/object-alignment-to-the-left.svg">
+          <img v-on:click="align_center_v" class="button" src="./assets/object-alignment-horizontal.svg">
+          <img v-on:click="align_right" class="button" src="./assets/object-alignment-to-the-right.svg">
           <img class="button" src="./assets/object-alignment-to-the-top.svg">
           <img class="button" src="./assets/object-alignment-to-the-center.svg">
           <img class="button" src="./assets/object-alignment-at-the-bottom.svg">
@@ -82,6 +82,55 @@ export default {
       innerHtml = innerHtml.replaceAll(" class=\"\"", "");
       this.$emit("code_updated", innerHtml, this);
     },
+    align_left: function() {
+      if (this.selected_element) {
+        if (this.selected_element.parentNode.style.display == "flex") {
+          let previous_sibling = this.selected_element.previousElementSibling;
+          if (previous_sibling) {
+            previous_sibling.style.marginLeft = (previous_sibling.style.marginLeft == 'auto' ? 0 : previous_sibling.style.marginLeft);
+            previous_sibling.style.marginRight = (previous_sibling.style.marginRight == 'auto' ? 0 : previous_sibling.style.marginRight);
+          }
+          this.selected_element.style.marginLeft = 0;
+          this.selected_element.style.marginRight = 'auto';
+          this.selected_element.style.transform = null;
+          this.code_updated();
+          this.$refs.styles_pane.update();
+        }
+      }
+    },
+    align_right: function() {
+      if (this.selected_element) {
+        let next_sibling = this.selected_element.nextElementSibling;
+        if (next_sibling) {
+          next_sibling.style.marginLeft = (next_sibling.style.marginLeft == 'auto' ? 0 : next_sibling.style.marginLeft);
+          next_sibling.style.marginRight = (next_sibling.style.marginRight == 'auto' ? 0 : next_sibling.style.marginRight);
+        }
+        if (this.selected_element.parentNode.style.display == "flex") {
+          this.selected_element.style.marginLeft = 'auto';
+          this.selected_element.style.marginRight = 0;
+          this.selected_element.style.transform = null;
+          this.code_updated();
+          this.$refs.styles_pane.update();
+        }
+      }
+    },
+    align_center_v: function() {
+      if (this.selected_element) {
+        if (this.selected_element.parentNode.style.display != "flex") {
+          let parent_node = this.selected_element.parentNode;
+          let new_container = document.createElement("div");
+          new_container.style.display = 'flex';
+          parent_node.insertBefore(new_container, this.selected_element);
+          parent_node.removeChild(this.selected_element);
+          new_container.appendChild(this.selected_element);
+        }
+        this.selected_element.style.marginLeft = 'auto';
+        this.selected_element.style.marginRight = 'auto';
+        this.selected_element.style.transform = null;
+        this.code_updated();
+        this.$refs.styles_pane.update();       
+      }
+    },
     set_code: function(code) {
       this.$data.code = code;
       // this.$data.selected_element = null;
@@ -121,15 +170,13 @@ export default {
         width: 100%;
     }
     .render_pane >>> .selected {
-      content: '';
-      display: block;
-      position: relative;
-      width: 100%;
-      height: 100%;
       outline: 2px dashed red;
     }
     .render_pane >>> .tools { order: 1; }
-    .render_pane >>> .styles_pane { order: 2; }
+    .render_pane >>> .styles_pane {
+      order: 2;
+      width: 25rem;
+    }
     .render_pane >>> .tools {
       padding: 0.25rem;
       background-color: #cecece;
@@ -150,5 +197,22 @@ export default {
     }
     .render_pane >>> .content {
       overflow: hidden;
+    }
+
+    /* Temporary Styles */
+    .render_pane >>> .content .modal {
+      padding: 1rem;
+      box-shadow: rgba(0, 0, 0, 0.15) 0px 0.15rem 3rem;
+      border-radius: 0.5rem;
+      background: rgb(255, 255, 255);
+    }
+    .render_pane >>> .content .btn {
+      background-color: rgb(80, 150, 80);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      color: rgb(255, 255, 255);
+    }
+    .render_pane >>> .content .btn.btn-secondary {
+      background-color: rgb(80, 80, 80);
     }
 </style>

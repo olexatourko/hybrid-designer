@@ -13,9 +13,11 @@ export default {
   data () {
     return {
       code:
-`<div style="display: flex; width: 100%; height: 600px; flex-direction: row;">
-  <div style="width: 10rem; height: 6rem; margin: auto; box-shadow: 0 0.15rem 3rem rgba(0, 0, 0, 0.15); border-radius: 0.5rem;">
-    Test Content
+`<div style="display: flex; width: 100%; height: 600px; padding: 2rem; flex-direction: row; align-items: flex-start;">
+  <div class="modal">
+    <h2 class="font-bold">My App</h2>
+    <p>I got a whole California run from 1910 up, and uh... I've even got plates that people would go out and homestead, like in Barstow. They have to build a little house to get the property. You still see them out there. Then they had to make a roof. Well, out of... you know, a company that used to melt the plates down, fact they were in Ontario and then, going out that way on that railroad route, or get or getting plates coming this way, I don't know, then the train derailed, so here's a BIG pile of license plates, and they're all from the 30's, layin' out in the desert.</p>
+    <button class="btn">Continue</button>
   </div>
 </div>`,
       cmOptions: {
@@ -48,7 +50,7 @@ export default {
 <style scoped>
     .markup_pane {
       width: 100%;
-      height: 600px;
+      height: 25rem;
       background-color: rgb(255, 249, 223);
     }
     .vue-codemirror >>> .CodeMirror {

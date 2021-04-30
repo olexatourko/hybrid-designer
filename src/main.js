@@ -15,7 +15,8 @@ Vue.use(codemirror, {
   options: {
     mode: 'htmlmixed',
     theme: 'base16-light',
-    lineNumbers: true
+    lineNumbers: true,
+    lineWrapping: true
   }
 });
 
