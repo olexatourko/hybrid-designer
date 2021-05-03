@@ -1,6 +1,5 @@
 <template>
     <div class="markup_pane">
-        <div class="toolbar">Markup</div>
         <codemirror v-on:changes="code_updated" :value="code" v-on:focus="focused = true" v-on:blur="focused = false" :options="cmOptions" ref="cmEditor"/>
     </div>
 </template>
@@ -13,12 +12,11 @@ export default {
   data () {
     return {
       code:
-`<div style="display: flex; width: 100%; height: 600px; padding: 2rem; flex-direction: row; align-items: flex-start;">
-  <div class="modal">
-    <h2 class="font-bold">My App</h2>
-    <p>I got a whole California run from 1910 up, and uh... I've even got plates that people would go out and homestead, like in Barstow. They have to build a little house to get the property. You still see them out there. Then they had to make a roof. Well, out of... you know, a company that used to melt the plates down, fact they were in Ontario and then, going out that way on that railroad route, or get or getting plates coming this way, I don't know, then the train derailed, so here's a BIG pile of license plates, and they're all from the 30's, layin' out in the desert.</p>
-    <button class="btn">Continue</button>
-  </div>
+`<div class="modal">
+  <h2 class="font-bold">My App</h2>
+  <p>I got a whole California run from 1910 up, and uh... I've even got plates that people would go out and homestead, like in Barstow. They have to build a little house to get the property. You still see them out there. Then they had to make a roof. Well, out of... you know, a company that used to melt the plates down, fact they were in Ontario and then, going out that way on that railroad route, or get or getting plates coming this way, I don't know, then the train derailed, so here's a BIG pile of license plates, and they're all from the 30's, layin' out in the desert.</p>
+  <button class="btn" style="margin-top: 1rem;">Continue</button>
+  <button class="btn btn_secondary" style="margin-top: 1rem;">Cancel</button>
 </div>`,
       cmOptions: {
         tabSize: 4,

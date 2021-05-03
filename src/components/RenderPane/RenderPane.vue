@@ -1,23 +1,29 @@
 <template>
     <div class="render_pane flex flex-col">
-      <div class="toolbar">
-        <select>
-          <option>Default</option>
-          <option>OpenGraph Image - LinkedIn</option>
-          <option>OpenGraph Image - Twitter</option>
-        </select>
-      </div>
       <div class="flex flex-row flex-1">
-        <div class="tools flex flex-col">
-          <img v-on:click="align_left" class="button" src="./assets/object-alignment-to-the-left.svg">
-          <img v-on:click="align_center_v" class="button" src="./assets/object-alignment-horizontal.svg">
-          <img v-on:click="align_right" class="button" src="./assets/object-alignment-to-the-right.svg">
-          <img class="button" src="./assets/object-alignment-to-the-top.svg">
-          <img class="button" src="./assets/object-alignment-to-the-center.svg">
-          <img class="button" src="./assets/object-alignment-at-the-bottom.svg">
-        </div>
-        <StylesPane ref="styles_pane" v-bind:element="selected_element" v-on:css_updated="update_selected_element_css"/>
+
         <div v-html="code" ref="content" v-on:mousedown="mousedown" v-on:mouseup="mouseup" class="content flex-1"></div>
+        <div class="tools">
+          <div class="section">
+            <h3 class="font-bold">Alignment</h3>
+            <div class="flex flex-row">
+              <div v-on:click="align_left" class="button">ATL</div>
+              <div v-on:click="align_center_v" class="button">ATC</div>
+              <div v-on:click="align_right" class="button">ATR</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="font-bold text-base">Inline Styles</h3>
+            <StylesPane ref="styles_pane" v-bind:element="selected_element" v-on:css_updated="update_selected_element_css"/>
+          </div>
+          <div class="section">
+            <h3 class="font-bold text-base">Classes</h3>
+          </div>
+          <div class="section">
+            <h3 class="font-bold text-base">Components</h3>
+          </div>
+        </div>
       </div>
     </div>
 </template>
@@ -36,7 +42,74 @@ export default {
     return {
       code: null,
       selected_element: null,
+      nearest_element: null,
       action: null
+    }
+  },
+  computed: {
+    elements: function() {
+      let nodes = [];
+      const nodeIterator = document.createNodeIterator(
+          this.$refs.content,
+          NodeFilter.SHOW_ELEMENT,
+          (node) => {
+            return node != this.$refs.content;
+          }
+      );
+      for (let e = nodeIterator.nextNode(); e != null; e=nodeIterator.nextNode()) {
+        nodes.push(e);
+      }
+      return nodes;
+    }
+  },
+  watch: {
+    // Update interact.js when html updated
+    code: function() {
+      this.$nextTick(() => {
+        for (const node of this.elements) {
+          let component = this;
+          interact(node).draggable({
+              modifiers: [
+                interact.modifiers.restrict({
+                  restriction: 'parent'
+                })
+              ],
+              listeners: {
+                move (event) {
+                  let position = { x: 0, y: 0 };
+                  if (event.target.style.transform) {
+                    let matrix = new DOMMatrixReadOnly(event.target.style.transform)
+                    position.x = matrix.m41;
+                    position.y = matrix.m42;
+                  }
+                  component.action = null;
+                  position.y += event.dy;
+                  position.x += event.dx;
+                  event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
+                  component.code_updated();
+                  component.$refs.styles_pane.update();
+
+                  // Highlight nearby elements - find nearest coords
+                  component.nearest_element = component.find_nearest_element(event.target);
+                }
+              },
+          });
+          interact(node).dropzone({}).on('dragenter', function (event) {
+            event.target.classList.add('drop_activated')
+          }).on('dragleave', function(event) {
+            event.target.classList.remove('drop_activated')
+          }).on('drop', function(event) {
+            event.target.classList.remove('drop_activated');
+            event.relatedTarget.parentNode.removeChild(event.relatedTarget);
+            event.target.appendChild(event.relatedTarget);
+            event.relatedTarget.style.transform = null;
+          });
+        }
+      });
+    },
+    nearest_element: function(new_val, old_val) {
+      if (new_val) { new_val.classList.add('align_to'); }
+      if (old_val) { old_val.classList.remove('align_to'); }
     }
   },
   methods: {
@@ -58,10 +131,12 @@ export default {
       }
     },
     select_element: function(el) {
-      this.deselect_element();
-      this.selected_element = el;
-      this.selected_element.classList.add("selected");
-      this.$emit('selected_element', this.selected_element)
+      if (el != this.$refs.content) {
+        this.deselect_element();
+        this.selected_element = el;
+        this.selected_element.classList.add("selected");
+        this.$emit('selected_element', this.selected_element)
+      }
     },
     deselect_element: function() {
       if (this.selected_element) {
@@ -133,32 +208,14 @@ export default {
     },
     set_code: function(code) {
       this.$data.code = code;
-      // this.$data.selected_element = null;
-      // var doc = new DOMParser().parseFromString(code, "text/xml");
-      let component = this;
-      interact('.render_pane .content *').draggable({
-          modifiers: [
-            interact.modifiers.restrict({
-              restriction: 'parent'
-            })
-          ],
-          listeners: {
-            move (event) {
-              let position = { x: 0, y: 0 };
-              if (event.target.style.transform) {
-                let matrix = new DOMMatrixReadOnly(event.target.style.transform)
-                position.x = matrix.m41;
-                position.y = matrix.m42;
-              }
-              component.action = null;
-              position.y += event.dy;
-              position.x += event.dx;
-              event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
-              component.code_updated();
-              component.$refs.styles_pane.update();
-            }
-          }
-      })
+    },
+    find_nearest_element: function(el) {
+      let ebr = el.getBoundingClientRect() // Element bounding rectangle
+      let nearest = {
+        el: null,
+        distance: null
+      }
+      return nearest.el;
     }
   }
 }
@@ -171,31 +228,43 @@ export default {
     }
     .render_pane >>> .selected {
       outline: 2px dashed red;
+      z-index: 99999;
     }
-    .render_pane >>> .tools { order: 1; }
+    .render_pane >>> .drop_activated {
+      outline: 2px dashed green;
+      z-index: 99999;
+    }
+    .render_pane >>> .align_to {
+      outline: 2px dashed blue;
+    }
     .render_pane >>> .styles_pane {
       order: 2;
       width: 25rem;
     }
     .render_pane >>> .tools {
-      padding: 0.25rem;
-      background-color: #cecece;
+      font-family: 'Courier New', Courier, monospace;
+      color: rgb(50, 50, 50);
+      border-left: 1px solid rgb(200, 200, 200);
+      padding: 1rem;
+    }
+    .render_pane >>> .tools .section {
+      border-bottom: 1px solid rgb(200, 200, 200);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .render_pane >>> .tools .section:last-child {
+      border-bottom: none;
     }
     .render_pane >>> .tools .button {
       box-sizing: content-box;
-      height: 1rem;
-      padding: 0.25rem;
-      border: 1px solid rgb(0, 0, 0);
-      border-radius: 3px;
+      padding-right: 1rem;
     }
     .render_pane >>> .tools .button:hover {
       opacity: 0.25;
       cursor: pointer;
     }
-    .render_pane >>> .tools .button:nth-child(n+1) {
-      margin-top: 0.25rem;
-    }
     .render_pane >>> .content {
+      padding: 1rem;
       overflow: hidden;
     }
 
@@ -212,7 +281,7 @@ export default {
       border-radius: 0.25rem;
       color: rgb(255, 255, 255);
     }
-    .render_pane >>> .content .btn.btn-secondary {
+    .render_pane >>> .content .btn.btn_secondary {
       background-color: rgb(80, 80, 80);
     }
 </style>

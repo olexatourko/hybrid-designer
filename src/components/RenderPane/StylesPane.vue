@@ -12,8 +12,11 @@ export default {
   },
   watch: {
     element: function(new_val) {
-      let css = new_val.style.cssText.replaceAll("; ", ";");
-      css = css.replaceAll(";", ";\n");
+      let css = '';
+      if (new_val) {
+        css = new_val.style.cssText.replaceAll("; ", ";");
+        css = css.replaceAll(";", ";\n");
+      }
       this.$refs.cmEditor.codemirror.doc.setValue(css);
     }
   },
@@ -44,13 +47,5 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-    .styles_pane {
-        background-color: rgb(255, 249, 223);
-        padding-right: 1rem;
-    }
 
-    .styles_pane >>> .CodeMirror,
-    .styles_pane >>> .CodeMirror .CodeMirror-gutters {
-      background: rgb(255, 249, 223);
-    }
 </style>

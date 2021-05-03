@@ -1,9 +1,11 @@
 <template>
-  <div id="app">
-    <RenderPane ref="render_pane" v-on:code_updated="code_updated"/>
-    <div class="flex flex-row">
-      <MarkupPane v-on:code_updated="code_updated" ref="markup_pane"/>
+  <div id="app" class="flex flex-col">
+    <div class="toolbar">
+      <button class="btn" v-bind:class="{ active: mode=='visual' }" v-on:click="mode='visual'">Visual</button>
+      <button class="btn" v-bind:class="{ active: mode=='code' }" v-on:click="mode='code'">Code</button>
     </div>
+    <RenderPane v-bind:class="{ hidden: mode!='visual' }" ref="render_pane" v-on:code_updated="code_updated" class="flex-1"/>
+    <MarkupPane v-bind:class="{ hidden: mode!='code' }" v-on:code_updated="code_updated" ref="markup_pane" class="flex-1"/>
   </div>
 </template>
 
@@ -14,6 +16,11 @@ import './styles.css'
 
 export default {
   name: 'App',
+  data () {
+    return {
+      mode: "visual"
+    }
+  },
   components: {
     RenderPane,
     MarkupPane
@@ -32,7 +39,23 @@ export default {
 </script>
 
 <style>
+  html, body { height: 100vh; }
+
   #app {
-    position: relative;
+    min-height: 100%;
+  }
+  
+  #app > .toolbar {
+    background-color: #443f5f;
+    color: rgb(255, 255, 255);
+    font-family: 'Courier New', Courier, monospace;
+  }
+  #app > .toolbar .btn {
+    padding: 0.1rem 1rem;
+    outline: none;
+  }
+  #app > .toolbar .btn.active { background-color: #7b72ab; }
+  #app > .toolbar .btn:hover {
+    background-color: #7b72ab;
   }
 </style>
