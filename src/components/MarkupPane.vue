@@ -15,8 +15,11 @@ export default {
 `<div class="modal">
   <h2 class="font-bold">My App</h2>
   <p>I got a whole California run from 1910 up, and uh... I've even got plates that people would go out and homestead, like in Barstow. They have to build a little house to get the property. You still see them out there. Then they had to make a roof. Well, out of... you know, a company that used to melt the plates down, fact they were in Ontario and then, going out that way on that railroad route, or get or getting plates coming this way, I don't know, then the train derailed, so here's a BIG pile of license plates, and they're all from the 30's, layin' out in the desert.</p>
-  <button class="btn" style="margin-top: 1rem;">Continue</button>
-  <button class="btn btn_secondary" style="margin-top: 1rem;">Cancel</button>
+  <h2 class="font-bold" style="margin-top: 1rem;">Action</h2>
+  <div style="margin-top: 0.5rem;">
+    <button class="btn"">Continue</button>
+    <button class="btn btn_secondary">Cancel</button>
+  </div>
 </div>`,
       cmOptions: {
         tabSize: 4,

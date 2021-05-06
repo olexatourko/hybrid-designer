@@ -2,7 +2,7 @@
     <div class="render_pane flex flex-col">
       <div class="flex flex-row flex-1">
 
-        <div v-html="code" ref="content" v-on:mousedown="mousedown" v-on:mouseup="mouseup" class="content flex-1"></div>
+        <div v-html="code" ref="content" v-on:mousedown="mousedown" class="content flex-1"></div>
         <div class="tools">
           <div class="section">
             <h3 class="font-bold">Alignment</h3>
@@ -43,8 +43,8 @@ export default {
     return {
       code: null,
       selected_element: null,
-      nearest_element: null,
-      action: null
+      align_target: null,
+      drop_target: null
     }
   },
   computed: {
@@ -61,6 +61,12 @@ export default {
         nodes.push(e);
       }
       return nodes;
+    },
+    is_align_target_in_range: function() {
+      if (this.align_target) {
+        return this.align_target.magnitude < 10;
+      }
+      return false;
     }
   },
   watch: {
@@ -93,20 +99,27 @@ export default {
                   // Highlight nearby elements - find nearest coords
                   let nearest_element = find_closest_element(event.target, component.elements);
                   if (nearest_element) {
-                    component.nearest_element = nearest_element;
+                    component.align_target = nearest_element;
                   }
                   else {
-                    component.nearest_element = null;
+                    component.align_target = null;
                   }
                 }
               },
+          }).on('dragstart', function(event) {
+            event.target.classList.add('dragging');
+          })
+          .on('dragend', function(event) {
+            event.target.classList.remove('dragging');
+            component.align_target = null;
           });
+
           interact(node).dropzone({}).on('dragenter', function (event) {
-            event.target.classList.add('drop_activated')
+            component.drop_target = event.target;
           }).on('dragleave', function(event) {
-            event.target.classList.remove('drop_activated')
+            component.drop_target = null;
           }).on('drop', function(event) {
-            event.target.classList.remove('drop_activated');
+            component.drop_target = null;
             event.relatedTarget.parentNode.removeChild(event.relatedTarget);
             event.target.appendChild(event.relatedTarget);
             event.relatedTarget.style.transform = null;
@@ -114,58 +127,80 @@ export default {
         }
       });
     },
-    nearest_element: function(new_val, old_val) {
-      if (old_val) {
-        old_val.element.classList.remove('align_to_left');
-        old_val.element.classList.remove('align_to_right');
-        old_val.element.classList.remove('align_to_top');
-        old_val.element.classList.remove('align_to_bottom');
-      }
-      if (new_val && new_val.magnitude <= 10) {
-        if (new_val.direction == 'left') {
-          new_val.element.classList.add('align_to_left');
-        } else if (new_val.direction == 'right') {
-          new_val.element.classList.add('align_to_right');
-        } else if (new_val.direction == 'top') {
-          new_val.element.classList.add('align_to_top');
-        } else if (new_val.direction == 'bottom') {
-          new_val.element.classList.add('align_to_bottom');
+    selected_element: function(new_val, old_val) {
+      if (old_val) { old_val.classList.remove("selected"); }
+      if (new_val) { new_val.classList.add("selected"); }
+    },
+    align_target: {
+      handler: function(new_val, old_val) {
+        if (old_val) {
+          old_val.element.classList.remove('align_to_left');
+          old_val.element.classList.remove('align_to_right');
+          old_val.element.classList.remove('align_to_top');
+          old_val.element.classList.remove('align_to_bottom');
+          if (old_val.element.parentElement) {
+            old_val.element.parentElement.classList.remove('drop');
+          }
         }
+        this.update_highlighting()
+      },
+      deep: true
+    },
+    drop_target: function(new_val, old_val) {
+      if (old_val) {
+        old_val.classList.remove('drop');
       }
+      this.update_highlighting();
     }
   },
   methods: {
     mousedown: function(event) {
-      if (this.selected_element) {
-        this.action = 'Select';
-      } else {
-        this.action = null;
-        this.select_element(event.target);
-      }
-    },
-    mouseup: function(event) {
-      if (this.$data.action != 'Select') {
-        return;
-      }
-      this.deselect_element();
-      if (event.target) {
-        this.select_element(event.target);
-      }
+      this.select_element(event.target);
     },
     select_element: function(el) {
       if (el != this.$refs.content) {
         this.deselect_element();
         this.selected_element = el;
-        this.selected_element.classList.add("selected");
         this.$emit('selected_element', this.selected_element)
       }
     },
     deselect_element: function() {
       if (this.selected_element) {
-        this.selected_element.classList.remove("selected");
-        this.$emit('deselected_element', this.selected_element)
         this.selected_element = null;
         this.nearest_element = null;
+      }
+    },
+    update_highlighting() {
+      if (!this.selected_element) { return; }
+
+      if (this.drop_target && !this.is_align_target_in_range) {
+        this.drop_target.classList.add('drop');
+      } else if (this.drop_target) {
+        this.drop_target.classList.remove('drop');
+      }
+
+      if (this.align_target) {
+        let align_to = this.align_target.element;
+        let direction = this.align_target.direction;
+        if (this.is_align_target_in_range) {
+          if (direction == 'left') {
+            align_to.classList.add('align_to_left');
+          } else if (direction == 'right') {
+            align_to.classList.add('align_to_right');
+          } else if (direction == 'top') {
+            align_to.classList.add('align_to_top');
+          } else if (direction == 'bottom') {
+            align_to.classList.add('align_to_bottom');
+          }
+          if (align_to.parentElement) { align_to.parentElement.classList.add('drop'); }
+
+        } else {
+          align_to.classList.remove('align_to_left');
+          align_to.classList.remove('align_to_right');
+          align_to.classList.remove('align_to_top');
+          align_to.classList.remove('align_to_bottom');
+          if (align_to.parentElement) { align_to.parentElement.classList.remove('drop'); }
+        }
       }
     },
     update_selected_element_css: function(css) {
@@ -245,7 +280,11 @@ export default {
       outline: 2px dashed rgb(180, 200, 255);
       z-index: 99999;
     }
-    .render_pane >>> .drop_activated {
+    .render_pane >>> .dragging {
+      opacity: 0.8;
+    }
+
+    .render_pane >>> .drop {
       outline: 2px dashed rgb(255, 200, 180);
       z-index: 99999;
     }

@@ -57,7 +57,16 @@ function find_closest_side(from_el, to_el) {
         });
         distances.push({
             direction: 'bottom',
+            magnitude: Math.abs(from_segments.top.y1 - to_segments.top.y1)
+        });
+
+        distances.push({
+            direction: 'bottom',
             magnitude: Math.abs(from_segments.bottom.y1 - to_segments.top.y1)
+        });
+        distances.push({
+            direction: 'top',
+            magnitude: Math.abs(from_segments.bottom.y1 - to_segments.bottom.y1)
         });
     }
     // Compare vertical segments
@@ -68,7 +77,16 @@ function find_closest_side(from_el, to_el) {
         });
         distances.push({
             direction: 'right',
+            magnitude: Math.abs(from_segments.left.x1 - to_segments.left.x1)
+        });
+
+        distances.push({
+            direction: 'right',
             magnitude: Math.abs(from_segments.right.x1 - to_segments.left.x1)
+        });
+        distances.push({
+            direction: 'left',
+            magnitude: Math.abs(from_segments.right.x1 - to_segments.right.x1)
         });
     }
     if (distances) {
