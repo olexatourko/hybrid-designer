@@ -121,7 +121,15 @@ export default {
           }).on('drop', function(event) {
             component.drop_target = null;
             event.relatedTarget.parentNode.removeChild(event.relatedTarget);
-            event.target.appendChild(event.relatedTarget);
+            if (component.align_target) {
+              if (component.align_target.direction == 'top' || component.align_target.direction == 'left') {
+                component.align_target.element.parentElement.insertBefore(event.relatedTarget, component.align_target.element.nextSibling);
+              } else {
+                component.align_target.element.parentElement.insertBefore(event.relatedTarget, component.align_target.element);
+              }
+            } else {
+              event.target.appendChild(event.relatedTarget);
+            }
             event.relatedTarget.style.transform = null;
           });
         }
