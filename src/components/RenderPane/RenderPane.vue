@@ -32,6 +32,7 @@
 
 import StylesPane from './StylesPane.vue'
 import interact from 'interactjs'
+import find_closest_element from '@/js/utils';
 
 export default {
   name: 'RenderPane',
@@ -69,11 +70,11 @@ export default {
         for (const node of this.elements) {
           let component = this;
           interact(node).draggable({
-              modifiers: [
-                interact.modifiers.restrict({
-                  restriction: 'parent'
-                })
-              ],
+              // modifiers: [
+              //   interact.modifiers.restrict({
+              //     restriction: 'parent'
+              //   })
+              // ],
               listeners: {
                 move (event) {
                   let position = { x: 0, y: 0 };
@@ -90,7 +91,13 @@ export default {
                   component.$refs.styles_pane.update();
 
                   // Highlight nearby elements - find nearest coords
-                  component.nearest_element = component.find_nearest_element(event.target);
+                  let nearest_element = find_closest_element(event.target, component.elements);
+                  if (nearest_element) {
+                    component.nearest_element = nearest_element;
+                  }
+                  else {
+                    component.nearest_element = null;
+                  }
                 }
               },
           });
@@ -108,8 +115,23 @@ export default {
       });
     },
     nearest_element: function(new_val, old_val) {
-      if (new_val) { new_val.classList.add('align_to'); }
-      if (old_val) { old_val.classList.remove('align_to'); }
+      if (old_val) {
+        old_val.element.classList.remove('align_to_left');
+        old_val.element.classList.remove('align_to_right');
+        old_val.element.classList.remove('align_to_top');
+        old_val.element.classList.remove('align_to_bottom');
+      }
+      if (new_val && new_val.magnitude <= 10) {
+        if (new_val.direction == 'left') {
+          new_val.element.classList.add('align_to_left');
+        } else if (new_val.direction == 'right') {
+          new_val.element.classList.add('align_to_right');
+        } else if (new_val.direction == 'top') {
+          new_val.element.classList.add('align_to_top');
+        } else if (new_val.direction == 'bottom') {
+          new_val.element.classList.add('align_to_bottom');
+        }
+      }
     }
   },
   methods: {
@@ -143,6 +165,7 @@ export default {
         this.selected_element.classList.remove("selected");
         this.$emit('deselected_element', this.selected_element)
         this.selected_element = null;
+        this.nearest_element = null;
       }
     },
     update_selected_element_css: function(css) {
@@ -208,14 +231,6 @@ export default {
     },
     set_code: function(code) {
       this.$data.code = code;
-    },
-    find_nearest_element: function(el) {
-      let ebr = el.getBoundingClientRect() // Element bounding rectangle
-      let nearest = {
-        el: null,
-        distance: null
-      }
-      return nearest.el;
     }
   }
 }
@@ -227,16 +242,26 @@ export default {
         width: 100%;
     }
     .render_pane >>> .selected {
-      outline: 2px dashed red;
+      outline: 2px dashed rgb(180, 200, 255);
       z-index: 99999;
     }
     .render_pane >>> .drop_activated {
-      outline: 2px dashed green;
+      outline: 2px dashed rgb(255, 200, 180);
       z-index: 99999;
     }
-    .render_pane >>> .align_to {
-      outline: 2px dashed blue;
+    .render_pane >>> .align_to_left {
+      box-shadow: 2px 0 rgb(180, 200, 255);
+     }
+    .render_pane >>> .align_to_right {
+      box-shadow: -2px 0 rgb(180, 200, 255);
     }
+    .render_pane >>> .align_to_top {
+      box-shadow: 0 2px rgb(180, 200, 255);
+    }
+    .render_pane >>> .align_to_bottom {
+      box-shadow: 0 -2px rgb(180, 200, 255);
+    }
+
     .render_pane >>> .styles_pane {
       order: 2;
       width: 25rem;
