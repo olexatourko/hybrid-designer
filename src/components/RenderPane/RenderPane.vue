@@ -19,6 +19,7 @@
           </div>
           <div class="section">
             <h3 class="font-bold text-base">Classes</h3>
+            <ClassEditor v-bind:classes="this.selected_element_classes"/>
           </div>
           <div class="section">
             <h3 class="font-bold text-base">Components</h3>
@@ -31,13 +32,15 @@
 <script>
 
 import StylesPane from './StylesPane.vue'
+import ClassEditor from './ClassEditor.vue'
 import interact from 'interactjs'
 import find_closest_element from '@/js/utils';
 
 export default {
   name: 'RenderPane',
   components: {
-    StylesPane
+    StylesPane,
+    ClassEditor
   },
   data () {
     return {
@@ -67,6 +70,12 @@ export default {
         return this.align_target.magnitude < 10;
       }
       return false;
+    },
+    selected_element_classes: function() {
+      if (this.selected_element) {
+        return this.selected_element.classList;
+      }
+      return null;
     }
   },
   watch: {
