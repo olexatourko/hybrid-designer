@@ -82,10 +82,22 @@ export default {
     // https://www.raymondcamden.com/2019/08/12/working-with-the-keyboard-in-your-vue-app
     // Setting the tabindex on the content div could also work
     window.addEventListener("keypress", e => {
-        if (e.code == 'Delete' && this.selected_element) {
+      if (this.selected_element) {
+        if (e.code == 'KeyA') {
+          let new_node = this.selected_element.cloneNode(true);
+          this.selected_element.parentElement.insertBefore(new_node, this.selected_element);
+          this.select_element(new_node);
+        }
+        else if (e.code == 'KeyB') {
+          let new_node = this.selected_element.cloneNode(true);
+          this.selected_element.parentElement.insertBefore(new_node, this.selected_element.nextSibling);
+          this.select_element(new_node);
+        }
+        else if (e.code == 'Delete') {
           this.selected_element.parentNode.removeChild(this.selected_element);
           this.deselect_element();
         }
+      }
     });
   },
   watch: {
