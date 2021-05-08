@@ -2,7 +2,7 @@
     <div class="render_pane flex flex-col">
       <div class="flex flex-row flex-1">
 
-        <div v-html="code" ref="content" v-on:mousedown="mousedown" class="content flex-1"></div>
+        <div v-html="code" ref="content" v-on:mousedown="mousedown" v-on:keypress="keypress" class="content flex-1" tabindex="0"></div>
         <div class="tools">
           <div class="section">
             <h3 class="font-bold">Alignment</h3>
@@ -78,91 +78,12 @@ export default {
       return null;
     }
   },
-  mounted: function() {
-    // https://www.raymondcamden.com/2019/08/12/working-with-the-keyboard-in-your-vue-app
-    // Setting the tabindex on the content div could also work
-    window.addEventListener("keypress", e => {
-      if (this.selected_element) {
-        if (e.code == 'KeyA') {
-          let new_node = this.selected_element.cloneNode(true);
-          this.selected_element.parentElement.insertBefore(new_node, this.selected_element);
-          this.select_element(new_node);
-        }
-        else if (e.code == 'KeyB') {
-          let new_node = this.selected_element.cloneNode(true);
-          this.selected_element.parentElement.insertBefore(new_node, this.selected_element.nextSibling);
-          this.select_element(new_node);
-        }
-        else if (e.code == 'Delete') {
-          this.selected_element.parentNode.removeChild(this.selected_element);
-          this.deselect_element();
-        }
-      }
-    });
-  },
   watch: {
     // Update interact.js when html updated
     code: function() {
       this.$nextTick(() => {
         for (const node of this.elements) {
-          let component = this;
-          interact(node).draggable({
-              // modifiers: [
-              //   interact.modifiers.restrict({
-              //     restriction: 'parent'
-              //   })
-              // ],
-              listeners: {
-                move (event) {
-                  let position = { x: 0, y: 0 };
-                  if (event.target.style.transform) {
-                    let matrix = new DOMMatrixReadOnly(event.target.style.transform)
-                    position.x = matrix.m41;
-                    position.y = matrix.m42;
-                  }
-                  component.action = null;
-                  position.y += event.dy;
-                  position.x += event.dx;
-                  event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
-                  component.code_updated();
-                  component.$refs.styles_pane.update();
-
-                  // Highlight nearby elements - find nearest coords
-                  let nearest_element = find_closest_element(event.target, component.elements);
-                  if (nearest_element) {
-                    component.align_target = nearest_element;
-                  }
-                  else {
-                    component.align_target = null;
-                  }
-                }
-              },
-          }).on('dragstart', function(event) {
-            event.target.classList.add('dragging');
-          })
-          .on('dragend', function(event) {
-            event.target.classList.remove('dragging');
-            component.align_target = null;
-          });
-
-          interact(node).dropzone({}).on('dragenter', function (event) {
-            component.drop_target = event.target;
-          }).on('dragleave', function(event) {
-            component.drop_target = null;
-          }).on('drop', function(event) {
-            component.drop_target = null;
-            event.relatedTarget.parentNode.removeChild(event.relatedTarget);
-            if (component.align_target) {
-              if (component.align_target.direction == 'top' || component.align_target.direction == 'left') {
-                component.align_target.element.parentElement.insertBefore(event.relatedTarget, component.align_target.element.nextSibling);
-              } else {
-                component.align_target.element.parentElement.insertBefore(event.relatedTarget, component.align_target.element);
-              }
-            } else {
-              event.target.appendChild(event.relatedTarget);
-            }
-            event.relatedTarget.style.transform = null;
-          });
+          this.register_node_listeners(node);
         }
       });
     },
@@ -196,8 +117,27 @@ export default {
     mousedown: function(event) {
       this.select_element(event.target);
     },
-    keyup: function(key) {
-      alert();
+    keypress: function(event) {
+      if (this.selected_element) {
+        if (event.code == 'KeyA') {
+          let new_node = this.selected_element.cloneNode(true);
+          this.selected_element.parentElement.insertBefore(new_node, this.selected_element);
+          new_node.focus();
+          this.register_node_listeners(new_node);
+          this.select_element(new_node);
+        }
+        else if (event.code == 'KeyB') {
+          let new_node = this.selected_element.cloneNode(true);
+          this.selected_element.parentElement.insertBefore(new_node, this.selected_element.nextSibling);
+          new_node.focus();
+          this.register_node_listeners(new_node);
+          this.select_element(new_node);
+        }
+        else if (event.code == 'Delete') {
+          this.selected_element.parentNode.removeChild(this.selected_element);
+          this.deselect_element();
+        }
+      }
     },
     select_element: function(el) {
       if (el != this.$refs.content) {
@@ -308,6 +248,66 @@ export default {
     },
     set_code: function(code) {
       this.$data.code = code;
+    },
+    register_node_listeners(node) {
+      interact(node).draggable({
+          // modifiers: [
+          //   interact.modifiers.restrict({
+          //     restriction: 'parent'
+          //   })
+          // ],
+          listeners: {
+            move: (event) => {
+              let position = { x: 0, y: 0 };
+              if (event.target.style.transform) {
+                let matrix = new DOMMatrixReadOnly(event.target.style.transform)
+                position.x = matrix.m41;
+                position.y = matrix.m42;
+              }
+              position.y += event.dy;
+              position.x += event.dx;
+              event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
+              this.code_updated();
+              this.$refs.styles_pane.update();
+
+              // Highlight nearby elements - find nearest coords
+              let nearest_element = find_closest_element(event.target, this.elements);
+              if (nearest_element) {
+                this.align_target = nearest_element;
+              }
+              else {
+                this.align_target = null;
+              }
+            }
+          },
+      }).on('dragstart', (event) => {
+        event.target.classList.add('dragging');
+      })
+      .on('dragend', (event) => {
+        event.target.classList.remove('dragging');
+        this.align_target = null;
+      });
+
+      interact(node).dropzone({}).on('dragenter', (event) => {
+        if (event.target != this.selected_element.parentElement) {
+          this.drop_target = event.target;
+        }
+      }).on('dragleave', (event) => {
+        this.drop_target = null;
+      }).on('drop', (event) => {
+        this.drop_target = null;
+        event.relatedTarget.parentNode.removeChild(event.relatedTarget);
+        if (this.align_target) {
+          if (this.align_target.direction == 'top' || this.align_target.direction == 'left') {
+            this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element.nextSibling);
+          } else {
+            this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element);
+          }
+        } else {
+          event.target.appendChild(event.relatedTarget);
+        }
+        event.relatedTarget.style.transform = null;
+      });
     }
   }
 }

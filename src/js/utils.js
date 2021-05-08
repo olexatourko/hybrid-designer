@@ -103,6 +103,8 @@ export default function find_closest_element(target, elements) {
     let closest_element = null;
     for (let candidate of elements) {
         if (candidate == target) { continue; }
+        if (target.contains(candidate)) { continue; }
+
         let distance = find_closest_side(target, candidate);
         if (distance && closest_element && distance.magnitude < closest_element.magnitude) {
             closest_element = distance;
