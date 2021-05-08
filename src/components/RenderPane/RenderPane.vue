@@ -82,9 +82,7 @@ export default {
     // Update interact.js when html updated
     code: function() {
       this.$nextTick(() => {
-        for (const node of this.elements) {
-          this.register_node_listeners(node);
-        }
+        this.register_node_listeners(this.$refs.content);
       });
     },
     selected_element: function(new_val, old_val) {
@@ -114,6 +112,13 @@ export default {
     }
   },
   methods: {
+    flag_recompute: function(properties = []) {
+      for (let watcher of this._watchers) {
+        if (properties.includes(watcher.getter.name)) {
+          watcher.dirty = true;
+        }
+      }
+    },
     mousedown: function(event) {
       this.select_element(event.target);
     },
@@ -123,19 +128,22 @@ export default {
           let new_node = this.selected_element.cloneNode(true);
           this.selected_element.parentElement.insertBefore(new_node, this.selected_element);
           new_node.focus();
-          this.register_node_listeners(new_node);
           this.select_element(new_node);
+          this.flag_recompute(['elements']); // Because $this.code is binded with v-html, changes to it are not detected by the reactivity system.
+          this.register_node_listeners(new_node);
         }
         else if (event.code == 'KeyB') {
           let new_node = this.selected_element.cloneNode(true);
           this.selected_element.parentElement.insertBefore(new_node, this.selected_element.nextSibling);
           new_node.focus();
-          this.register_node_listeners(new_node);
           this.select_element(new_node);
+          this.flag_recompute(['elements']);
+          this.register_node_listeners(new_node);
         }
-        else if (event.code == 'Delete') {
+        else if (event.code == 'Delete' || event.code == 'KeyD') {
           this.selected_element.parentNode.removeChild(this.selected_element);
           this.deselect_element();
+          this.flag_recompute(['elements']);
         }
       }
     },
@@ -249,65 +257,81 @@ export default {
     set_code: function(code) {
       this.$data.code = code;
     },
-    register_node_listeners(node) {
-      interact(node).draggable({
-          // modifiers: [
-          //   interact.modifiers.restrict({
-          //     restriction: 'parent'
-          //   })
-          // ],
-          listeners: {
-            move: (event) => {
-              let position = { x: 0, y: 0 };
-              if (event.target.style.transform) {
-                let matrix = new DOMMatrixReadOnly(event.target.style.transform)
-                position.x = matrix.m41;
-                position.y = matrix.m42;
-              }
-              position.y += event.dy;
-              position.x += event.dx;
-              event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
-              this.code_updated();
-              this.$refs.styles_pane.update();
-
-              // Highlight nearby elements - find nearest coords
-              let nearest_element = find_closest_element(event.target, this.elements);
-              if (nearest_element) {
-                this.align_target = nearest_element;
-              }
-              else {
-                this.align_target = null;
-              }
+    register_node_listeners(node, deep=true) {
+      let nodes = [node];
+      if (deep) {
+        const nodeIterator = document.createNodeIterator(
+            this.$refs.content,
+            NodeFilter.SHOW_ELEMENT,
+            (node) => {
+              return node != this.$refs.content;
             }
-          },
-      }).on('dragstart', (event) => {
-        event.target.classList.add('dragging');
-      })
-      .on('dragend', (event) => {
-        event.target.classList.remove('dragging');
-        this.align_target = null;
-      });
+        );
+        for (let e = nodeIterator.nextNode(); e != null; e=nodeIterator.nextNode()) {
+          nodes.push(e);
+        }
+      }
 
-      interact(node).dropzone({}).on('dragenter', (event) => {
-        if (event.target != this.selected_element.parentElement) {
-          this.drop_target = event.target;
-        }
-      }).on('dragleave', (event) => {
-        this.drop_target = null;
-      }).on('drop', (event) => {
-        this.drop_target = null;
-        event.relatedTarget.parentNode.removeChild(event.relatedTarget);
-        if (this.align_target) {
-          if (this.align_target.direction == 'top' || this.align_target.direction == 'left') {
-            this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element.nextSibling);
-          } else {
-            this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element);
+      for (node of nodes) {
+        interact(node).draggable({
+            // modifiers: [
+            //   interact.modifiers.restrict({
+            //     restriction: 'parent'
+            //   })
+            // ],
+            listeners: {
+              move: (event) => {
+                let position = { x: 0, y: 0 };
+                if (event.target.style.transform) {
+                  let matrix = new DOMMatrixReadOnly(event.target.style.transform)
+                  position.x = matrix.m41;
+                  position.y = matrix.m42;
+                }
+                position.y += event.dy;
+                position.x += event.dx;
+                event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
+                this.code_updated();
+                this.$refs.styles_pane.update();
+
+                // Highlight nearby elements - find nearest coords
+                let nearest_element = find_closest_element(event.target, this.elements);
+                if (nearest_element) {
+                  this.align_target = nearest_element;
+                }
+                else {
+                  this.align_target = null;
+                }
+              }
+            },
+        }).on('dragstart', (event) => {
+          event.target.classList.add('dragging');
+        })
+        .on('dragend', (event) => {
+          event.target.classList.remove('dragging');
+          this.align_target = null;
+        });
+
+        interact(node).dropzone({}).on('dragenter', (event) => {
+          if (event.target != this.selected_element.parentElement) {
+            this.drop_target = event.target;
           }
-        } else {
-          event.target.appendChild(event.relatedTarget);
-        }
-        event.relatedTarget.style.transform = null;
-      });
+        }).on('dragleave', (event) => {
+          this.drop_target = null;
+        }).on('drop', (event) => {
+          this.drop_target = null;
+          event.relatedTarget.parentNode.removeChild(event.relatedTarget);
+          if (this.align_target) {
+            if (this.align_target.direction == 'top' || this.align_target.direction == 'left') {
+              this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element.nextSibling);
+            } else {
+              this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element);
+            }
+          } else {
+            event.target.appendChild(event.relatedTarget);
+          }
+          event.relatedTarget.style.transform = null;
+        });
+      }
     }
   }
 }
