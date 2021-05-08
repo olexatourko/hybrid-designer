@@ -78,6 +78,16 @@ export default {
       return null;
     }
   },
+  mounted: function() {
+    // https://www.raymondcamden.com/2019/08/12/working-with-the-keyboard-in-your-vue-app
+    // Setting the tabindex on the content div could also work
+    window.addEventListener("keypress", e => {
+        if (e.code == 'Delete' && this.selected_element) {
+          this.selected_element.parentNode.removeChild(this.selected_element);
+          this.deselect_element();
+        }
+    });
+  },
   watch: {
     // Update interact.js when html updated
     code: function() {
@@ -173,6 +183,9 @@ export default {
   methods: {
     mousedown: function(event) {
       this.select_element(event.target);
+    },
+    keyup: function(key) {
+      alert();
     },
     select_element: function(el) {
       if (el != this.$refs.content) {
