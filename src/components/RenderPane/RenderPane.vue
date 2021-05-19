@@ -5,12 +5,13 @@
         <div v-html="code" ref="content" v-on:mousedown="mousedown" v-on:keypress="keypress" class="content flex-1" tabindex="0"></div>
         <div class="tools">
           <div class="section">
-            <h3 class="font-bold">Alignment</h3>
-            <div class="flex flex-row">
-              <div v-on:click="align_left" class="button">ATL</div>
-              <div v-on:click="align_center_v" class="button">ATC</div>
-              <div v-on:click="align_right" class="button">ATR</div>
-            </div>
+            <h3 class="font-bold">Macros</h3>
+            <ul>
+              <li v-on:click="align_left" class="button">Align Top Left</li>
+              <li v-on:click="align_center_v" class="button">Align Top Center</li>
+              <li v-on:click="align_right" class="button">Align Top Right</li>
+              <li v-on:click="align_right" class="button">Set Margins</li>
+            </ul>
           </div>
 
           <div class="section">
@@ -23,6 +24,7 @@
           </div>
           <div class="section">
             <h3 class="font-bold text-base">Components</h3>
+            <ComponentList/>
           </div>
         </div>
       </div>
@@ -30,17 +32,18 @@
 </template>
 
 <script>
-
-import StylesPane from './StylesPane.vue'
-import ClassEditor from './ClassEditor.vue'
+import StylesPane from './StylesPane.vue';
+import ClassEditor from './ClassEditor.vue';
+import ComponentList from './ComponentList/List.vue';
 import interact from 'interactjs'
-import find_closest_element from '@/js/utils';
+import { find_closest_element_to_point } from '@/js/utils';
 
 export default {
   name: 'RenderPane',
   components: {
     StylesPane,
-    ClassEditor
+    ClassEditor,
+    ComponentList
   },
   data () {
     return {
@@ -79,7 +82,6 @@ export default {
     }
   },
   watch: {
-    // Update interact.js when html updated
     code: function() {
       this.$nextTick(() => {
         this.register_node_listeners(this.$refs.content);
@@ -161,8 +163,6 @@ export default {
       }
     },
     update_highlighting() {
-      if (!this.selected_element) { return; }
-
       if (this.drop_target && !this.is_align_target_in_range) {
         this.drop_target.classList.add('drop');
       } else if (this.drop_target) {
@@ -273,69 +273,81 @@ export default {
       }
 
       for (node of nodes) {
+        interact(node).unset(); // Remove any actions and event listeners already set on the node
         interact(node).draggable({
-            // modifiers: [
-            //   interact.modifiers.restrict({
-            //     restriction: 'parent'
-            //   })
-            // ],
-            listeners: {
-              move: (event) => {
-                let position = { x: 0, y: 0 };
-                if (event.target.style.transform) {
-                  let matrix = new DOMMatrixReadOnly(event.target.style.transform)
-                  position.x = matrix.m41;
-                  position.y = matrix.m42;
-                }
-                position.y += event.dy;
-                position.x += event.dx;
-                event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
-                this.code_updated();
-                this.$refs.styles_pane.update();
-
-                // Highlight nearby elements - find nearest coords
-                let nearest_element = find_closest_element(event.target, this.elements);
-                if (nearest_element) {
-                  this.align_target = nearest_element;
-                }
-                else {
-                  this.align_target = null;
-                }
-              }
+            onstart: (event) => {
+              this.$nextTick(() => {
+                this.$store.commit('drag_event', event);
+                this.$store.commit('push_drag_context', {
+                    name: 'element',
+                    el: event.target.outerHTML
+                });
+              });
             },
-        }).on('dragstart', (event) => {
-          event.target.classList.add('dragging');
-        })
-        .on('dragend', (event) => {
-          event.target.classList.remove('dragging');
-          this.align_target = null;
-        });
+            onmove: (event) => {
+              this.$store.commit('drag_event', event);
+              this.code_updated();
+              this.$refs.styles_pane.update();
+            },
+            onend: (event) => {
+              this.$store.commit('drag_event', event);
+              this.$store.commit('push_drag_context', {});
+              this.align_target = null;
+            }
+          },
+        );
 
         interact(node).dropzone({}).on('dragenter', (event) => {
-          if (event.target != this.selected_element.parentElement) {
+          let dragged_element = this.$store.state.drag_view.$el;
+          if (!this.selected_element || (dragged_element != this.selected_element.parentElement)) {
             this.drop_target = event.target;
           }
         }).on('dragleave', (event) => {
           this.drop_target = null;
         }).on('drop', (event) => {
-          this.drop_target = null;
-          event.relatedTarget.parentNode.removeChild(event.relatedTarget);
-          if (this.align_target) {
+          var dragged_element = this.$store.state.drag_view.$el.children[0].cloneNode(true);
+          if (this.elements.includes(event.relatedTarget)) {
+            dragged_element = event.relatedTarget;
+            event.relatedTarget.parentNode.removeChild(event.relatedTarget);
+          }
+
+          if (this.align_target && this.is_align_target_in_range) {
             if (this.align_target.direction == 'top' || this.align_target.direction == 'left') {
-              this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element.nextSibling);
+              this.align_target.element.parentElement.insertBefore(dragged_element, this.align_target.element.nextSibling);
             } else {
-              this.align_target.element.parentElement.insertBefore(event.relatedTarget, this.align_target.element);
+              this.align_target.element.parentElement.insertBefore(dragged_element, this.align_target.element);
             }
           } else {
-            event.target.appendChild(event.relatedTarget);
+            event.target.appendChild(dragged_element);
           }
-          event.relatedTarget.style.transform = null;
+          this.align_target = null;
+          this.drop_target = null;
+          this.selected_element = null;
+          this.$nextTick(() => {
+            this.flag_recompute(['elements']); // Because $this.code is binded with v-html, changes to it are not detected by the reactivity system.
+            this.register_node_listeners(dragged_element, true);
+          });
+        }).on('dropmove', (event) => {
+          // Highlight nearby elements - find nearest coords
+          let dragged_element = this.$store.state.drag_view.$el;
+          if (!dragged_element.innerHTML) { return; }
+
+          let point = {
+            x: dragged_element.getBoundingClientRect().x,
+            y: dragged_element.getBoundingClientRect().y
+          }
+          let nearest_element = find_closest_element_to_point(point, this.elements);
+          if (nearest_element) {
+            this.align_target = nearest_element;
+          }
+          else {
+            this.align_target = null;
+          }
         });
       }
     }
   }
 }
-
 </script>
 
 <style scoped>
@@ -355,16 +367,16 @@ export default {
       z-index: 99999;
     }
     .render_pane >>> .align_to_left {
-      box-shadow: 2px 0 rgb(180, 200, 255);
+      box-shadow: -2px 0 rgb(180, 200, 255);
      }
     .render_pane >>> .align_to_right {
-      box-shadow: -2px 0 rgb(180, 200, 255);
+      box-shadow: 2px 0 rgb(180, 200, 255);
     }
     .render_pane >>> .align_to_top {
-      box-shadow: 0 2px rgb(180, 200, 255);
+      box-shadow: 0 -2px rgb(180, 200, 255);
     }
     .render_pane >>> .align_to_bottom {
-      box-shadow: 0 -2px rgb(180, 200, 255);
+      box-shadow: 0 2px rgb(180, 200, 255);
     }
 
     .render_pane >>> .styles_pane {
@@ -396,22 +408,5 @@ export default {
     .render_pane >>> .content {
       padding: 1rem;
       overflow: hidden;
-    }
-
-    /* Temporary Styles */
-    .render_pane >>> .content .modal {
-      padding: 1rem;
-      box-shadow: rgba(0, 0, 0, 0.15) 0px 0.15rem 3rem;
-      border-radius: 0.5rem;
-      background: rgb(255, 255, 255);
-    }
-    .render_pane >>> .content .btn {
-      background-color: rgb(80, 150, 80);
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      color: rgb(255, 255, 255);
-    }
-    .render_pane >>> .content .btn.btn_secondary {
-      background-color: rgb(80, 80, 80);
     }
 </style>

@@ -6,12 +6,14 @@
     </div>
     <RenderPane v-bind:class="{ hidden: mode!='visual' }" ref="render_pane" v-on:code_updated="code_updated" class="flex-1"/>
     <MarkupPane v-bind:class="{ hidden: mode!='code' }" v-on:code_updated="code_updated" ref="markup_pane" class="flex-1"/>
+    <DragView/>
   </div>
 </template>
 
 <script>
-import RenderPane from './components/RenderPane/RenderPane.vue'
-import MarkupPane from './components/MarkupPane.vue'
+import RenderPane from './components/RenderPane/RenderPane.vue';
+import MarkupPane from './components/MarkupPane.vue';
+import DragView from './components/DragView.vue';
 import './styles.css'
 
 export default {
@@ -23,7 +25,8 @@ export default {
   },
   components: {
     RenderPane,
-    MarkupPane
+    MarkupPane,
+    DragView
   },
   methods: {
     code_updated: function(code, source) {
