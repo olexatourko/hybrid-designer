@@ -14,11 +14,15 @@
             </ul>
           </div>
 
-          <div class="section">
+          <div class="section" v-if="selected_element">
             <h3 class="font-bold text-base">Inline Styles</h3>
-            <StylesPane ref="styles_pane" v-bind:element="selected_element" v-on:css_updated="update_selected_element_css"/>
+            <StylesPane ref="inline_styles_pane" v-bind:css="selected_element_inline_style" v-on:updated="update_selected_element_css"/>
           </div>
-          <div class="section">
+          <div class="section" v-if="selected_element">
+            <h3 class="font-bold text-base">Element Content</h3>
+            <codemirror ref="cmEditor" :value="selected_element_innerHTML" :options="HTMLcmOptions" v-on:changes="selected_element.innerHTML=$event.doc.getValue()"/>
+          </div>
+          <div class="section" v-if="selected_element">
             <h3 class="font-bold text-base">Classes</h3>
             <ClassEditor v-bind:classes="this.selected_element_classes"/>
           </div>
@@ -50,7 +54,13 @@ export default {
       code: null,
       selected_element: null,
       align_target: null,
-      drop_target: null
+      drop_target: null,
+      HTMLcmOptions: {
+        mode: 'htmlmixed',
+        theme: 'base16-light',
+        lineNumbers: true,
+        line: true,
+      }
     }
   },
   computed: {
@@ -73,6 +83,18 @@ export default {
         return this.align_target.magnitude < 10;
       }
       return false;
+    },
+    selected_element_inline_style: function() {
+      if (this.selected_element) {
+        return this.selected_element.style.cssText;
+      }
+      return null;
+    },
+    selected_element_innerHTML: function() {
+      if (this.selected_element) {
+        return this.selected_element.innerHTML;
+      }
+      return null;
     },
     selected_element_classes: function() {
       if (this.selected_element) {
@@ -287,7 +309,6 @@ export default {
             onmove: (event) => {
               this.$store.commit('drag_event', event);
               this.code_updated();
-              this.$refs.styles_pane.update();
             },
             onend: (event) => {
               this.$store.commit('drag_event', event);
@@ -354,6 +375,9 @@ export default {
     .render_pane {
         width: 100%;
     }
+    .render_pane >>> .content:focus {
+      outline: none;
+    }
     .render_pane >>> .selected {
       outline: 2px dashed rgb(180, 200, 255);
       z-index: 99999;
@@ -383,6 +407,10 @@ export default {
       order: 2;
       width: 25rem;
     }
+    .render_pane >>> .CodeMirror {
+      height: auto;
+    }
+
     .render_pane >>> .tools {
       font-family: 'Courier New', Courier, monospace;
       color: rgb(50, 50, 50);

@@ -1,6 +1,6 @@
 <template>
     <div class="styles_pane">
-      <codemirror ref="cmEditor" :options="cmOptions" v-on:changes="on_code_update"/>
+      <codemirror ref="cmEditor" :value="formatted_css" :options="cmOptions" v-on:changes="updated"/>
     </div>
 </template>
 
@@ -8,16 +8,17 @@
 export default {
   name: 'StylesPane',
   props: {
-    element: HTMLElement
+    css: String
   },
-  watch: {
-    element: function(new_val) {
-      let css = '';
-      if (new_val) {
-        css = new_val.style.cssText.replaceAll("; ", ";");
+  computed: {
+    formatted_css: function() {
+      if (!this.css) { 
+        return "";
+      } else {
+        let css = this.css.replaceAll("; ", ";");
         css = css.replaceAll(";", ";\n");
+        return css;
       }
-      this.$refs.cmEditor.codemirror.doc.setValue(css);
     }
   },
   data () {
@@ -31,15 +32,8 @@ export default {
     }
   },
   methods: {
-    on_code_update: function() {
-      this.$emit('css_updated', this.$refs.cmEditor.codemirror.doc.getValue());
-    },
-    update: function() {
-      if(this.element) {
-        let css = this.element.style.cssText.replaceAll("; ", ";");
-        css = css.replaceAll(";", ";\n");
-        this.$refs.cmEditor.codemirror.doc.setValue(css);
-      }
+    updated: function() {
+      this.$emit('updated', this.$refs.cmEditor.codemirror.doc.getValue());
     }
   }
 }
