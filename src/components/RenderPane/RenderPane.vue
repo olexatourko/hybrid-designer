@@ -333,7 +333,7 @@ export default {
           }
 
           if (this.align_target && this.is_align_target_in_range) {
-            if (this.align_target.direction == 'top' || this.align_target.direction == 'left') {
+            if (this.align_target.direction == 'bottom' || this.align_target.direction == 'right') {
               this.align_target.element.parentElement.insertBefore(dragged_element, this.align_target.element.nextSibling);
             } else {
               this.align_target.element.parentElement.insertBefore(dragged_element, this.align_target.element);
@@ -378,7 +378,7 @@ export default {
     .render_pane >>> .content:focus {
       outline: none;
     }
-    .render_pane >>> .selected {
+    .render_pane >>> .content .selected {
       outline: 2px dashed rgb(180, 200, 255);
       z-index: 99999;
     }
